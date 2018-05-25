@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>River crossing puzzle</title>
+  <style>
+    body {
+      background: black;
+    }
+
+    canvas {
+      padding: 0;
+      margin: auto;
+      display: block;
+      width: 640px;
+      height: 400px;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas" width="640" height="400"></canvas>
+
+<div style="display: none">
+  <img id="boat-top"
+       alt="boat sprite, top part"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAKElEQVQYV2NkgIL/////Z2RkZARxwQRUAEQzgCSwC8JUIRnDwDigggCrlULvcD+xxAAAAABJRU5ErkJggg==">
+  <img id="boat-bottom"
+       alt="boat sprite, bottom part"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAKUlEQVQYV2P8////f0ZGRgYY+P//PwPjwAqCnAJzAdg5IIBTEEkCrAgA289C72pGLtsAAAAASUVORK5CYII=">
+  <img id="farmer-front"
+       alt="farmer sprite, facing front"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAQklEQVQYV22OSQ4AIAwC4f+PRqex6qFcSAibBZIUA9vOL7TezlgyfpyV1osb9VTeToxz5zhUfe+QxOD484qM8nnzAlviJ/yQNU5KAAAAAElFTkSuQmCC">
+  <img id="farmer-left"
+       alt="farmer sprite, facing left"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAQElEQVQYV52OSQ4AIAgD7f8fXR1ZQjzKpcnQFrQY21cZSfIExctppRGr14iSBmZld1L5A8k4Poqb758NMbA8ugHV3CgHduvnagAAAABJRU5ErkJggg==">
+  <img id="farmer-right"
+       alt="farmer sprite, facing right"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAQUlEQVQYV42OQQoAMAjD7P8f3S26ibDLPCiUGFVQtnNSkuQZ3DzBKFJ0yBm24SjbCVjk8H6E7Lju5PrzZ4cAuPdcxGcoBCHZ2IIAAAAASUVORK5CYII=">
+  <img id="farmer-back"
+       alt="farmer sprite, facing back"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAPUlEQVQYV3WOUQoAMAhC9f6HdlNo9dEkCB6iEpakfIskNUHxGNFO2vqHI8KRe+ZalJIeBDC37HzQS1x4/wEj0yX8aVau+gAAAABJRU5ErkJggg==">
+  <img id="fox"
+       alt="fox sprite"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAQ0lEQVQYV2WOQRLAMAgCl/8/mg5JZNLWiygKCMDYQirOIkOWxQNCTC1WBguuvt9/l0czhourY/XQjvGN9bqcWM12Gz1bESzzHJ5a1wAAAABJRU5ErkJggg==">
+  <img id="goose"
+       alt="goose sprite"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAOklEQVQYV4WOUQoAMAhC9f6HdhgUjgbzo+ihEvEQ/1CSCFzOYlbGFzSwoZx9ZGLB6cxoVXgI/oTsfQCyISIEtjSmFQAAAABJRU5ErkJggg==">
+  <img id="beans"
+       alt="beans sprite"
+       src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAYAAAB8OZQwAAAAQUlEQVQYV1WLQQ4AMAjC4P+PZgF1UU5aCiUJHZL0yQ0DHMMxDPPHJEDU9MBM0cu0kAIgQS57Ulfln2MfOFaVK2M/qigz9SGTbkcAAAAASUVORK5CYII=">
+  <img id="chicago-12-font"
+       alt="Chicago 12pt font"
+       src="data:image/png;base64,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">
+</div>
+</body>
+<script>
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  let canvas = byId('canvas');
+  let context = canvas.getContext('2d');
+  context.imageSmoothingEnabled = false;
+
+  let scale = canvas.width / 320;
+
+  function verticalLine(x, y1, y2) {
+    context.fillRect(x * scale, y1 * scale, scale, (y2 - y1 + 1) * scale);
+  }
+
+  function horizontalLine(x1, x2, y) {
+    context.fillRect(x1 * scale, y * scale, (x2 - x1 + 1) * scale, scale);
+  }
+
+  function pixel(x, y) {
+    horizontalLine(x, x, y);
+  }
+
+  function drawSoftBox(x1, y1, x2, y2) {
+    verticalLine(x1, y1 + 2, y2 - 2);
+    verticalLine(x2, y1 + 2, y2 - 2);
+    horizontalLine(x1 + 2, x2 - 2, y1);
+    horizontalLine(x1 + 2, x2 - 2, y2);
+    pixel(x1 + 1, y1 + 1);
+    pixel(x2 - 1, y1 + 1);
+    pixel(x1 + 1, y2 - 1);
+    pixel(x2 - 1, y2 - 1);
+  }
+
+  context.drawImage(
+    byId("chicago-12-font"),
+    0,
+    0,
+    175 * scale,
+    195 * scale
+  );
+
+  const BLACK = "#000";
+  const CYAN = "#0ff";
+  const MAGENTA = "#f0f";
+  const WHITE = "#fff";
+
+  let glue = {
+    "112,10": true,
+    "113,10": true,
+    "256,202": true,
+    "257,202": true,
+    "284,202": true,
+    "285,202": true,
+    "286,202": true,
+    "287,202": true,
+    "186,266": true,
+    "187,266": true,
+    "188,266": true,
+    "189,266": true,
+    "194,266": true,
+    "195,266": true,
+    "196,266": true,
+    "197,266": true,
+    "36,298": true,
+    "37,298": true,
+    "50,298": true,
+    "51,298": true,
+  };
+  const characterSet = ("⌘✓⧫\0!\"#$%&'()*+,-./01" +
+    "23456789:;<=>?@ABCDEF" +
+    "GHIJKLMNOPQRSTUVWXY" +
+    "Z[\\]^_`abcdefghijklmno" +
+    "pqrstuvwxyz{|}~ÄÅÇÉÑÖ" +
+    "Üáàâäãåçéèêëíìîïñóòôö" +
+    "õúùûü†°¢£§•¶ß©®™´¨≠" +
+    "ÆØ∞±≤≥¥μ∂∑∏π∫ªºΩæ" +
+    "ø¿¡¬√⨍≈Δ«»…ÀÃÕŒœ–" +
+    "—“”‘’÷◊ÿ□").split("");
+  const height = 30;
+  let characterIndex = 0;
+  let characterImages = {};
+  for (let y = 10; y < 310; y += 32) {
+    let grabbing = false;
+    let grabStart;
+    for (let x = 5; x <= 330; x++) {
+      let imageData = context.getImageData(x, y, 1, height);
+      let data = imageData.data;
+      let foundSomething = false;
+      for (let i = 0; i < data.length; i += 4) {
+        foundSomething = foundSomething || data[i] > 0;
+      }
+      if (foundSomething || glue[`${x},${y}`]) {
+        if (!grabbing) {
+          grabStart = x;
+        }
+        grabbing = true;
+      } else if (grabbing) {
+        let character = characterSet[characterIndex];
+        characterImages[character] = context.getImageData(grabStart, y, x - grabStart, height);
+        characterIndex++;
+        context.fillStyle = BLACK;
+        context.fillRect(grabStart, y, x - grabStart, height);
+        grabbing = false;
+      }
+    }
+  }
+
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const rgb = {
+    [BLACK]: [0, 0, 0],
+    [CYAN]: [0, 0xFF, 0xFF],
+    [MAGENTA]: [0xFF, 0, 0xFF],
+    [WHITE]: [0xFF, 0xFF, 0xFF],
+  };
+
+  function write(text, x, y, { foreground = WHITE, background = BLACK } = {}) {
+    for (let char of text.split("")) {
+      if (char === " ") {
+        x += 5 * scale;
+        continue;
+      }
+      let charImage = characterImages[char];
+      if (foreground !== WHITE || background !== BLACK) {
+        charImage = new ImageData(Uint8ClampedArray.from(charImage.data), charImage.width, charImage.height);
+        for (let i = 0; i < charImage.data.length; i += 4) {
+          if (charImage.data[i] > 0) {
+            [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[foreground];
+          } else {
+            [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[background];
+          }
+        }
+      }
+      context.putImageData(charImage, x, y);
+      x += charImage.width + scale;
+      context.fillStyle = WHITE;
+    }
+  }
+
+  function textWidth(text) {
+    text = text.replace(/<(?:cyan|mag)>/g, "").replace(/<\/(?:cyan|mag)>/g, "");
+    let totalWidth = 0;
+    for (let char of text.split("")) {
+      if (char === " ") {
+        totalWidth += 5 * scale;
+        continue;
+      }
+      let charImage = characterImages[char];
+      if (typeof charImage === "undefined") {
+        throw new Error(`Could not find character '${char}' (${char.codePointAt(0)})`);
+      }
+      totalWidth += charImage.width + scale;
+    }
+    totalWidth -= scale;
+    return totalWidth;
+  }
+
+  const INVENTORY = { x: 55, y: 5 };
+  const EATEN = { x: -100, y: -100 };
+
+  let messageY;
+  function addMessage(message, textColor = WHITE) {
+    write(`• ${message}`, 10, messageY * scale, { foreground: textColor, background: BLACK });
+    messageY += 15;
+  }
+
+  context.fillStyle = WHITE;
+  drawSoftBox((INVENTORY.x - 1) * 5, (INVENTORY.y - 1) * 5, (INVENTORY.x + 2) * 5, (INVENTORY.y + 3) * 5);
+  write("Inventory", (INVENTORY.x - 5) * 5 * scale, (INVENTORY.y - 4) * 5 * scale - 6);
+
+  verticalLine(168, 0, 199);
+  verticalLine(170, 0, 199);
+
+  context.fillStyle = CYAN;
+  for (let x = 171; x < 320; x++) {
+    let y1 = 14 * 5 + Math.round(6 * Math.sin((x - 85) / 100));
+    let y2 = 22 * 5 - Math.round(10 * Math.sin((x + 85) / 100));
+    verticalLine(x, y1, y2);
+  }
+
+  const BOAT_X = 48;
+  let items;
+  let pickupBounce = 0;
+  let gameFinished = false;
+  let previousShore;
+
+  function clearItem(id) {
+    let { x, y, backgroundImage } = items[id];
+    // XXX: bug, when sprites are on top of each other, they don't clear LIFO as they should
+    context.putImageData(backgroundImage, x * 5 * scale, y * 5 * scale);
+  }
+
+  function drawItem(spriteId, itemId = spriteId) {
+    let { x, y } = items[itemId];
+    items[itemId].backgroundImage = context.getImageData(x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
+    context.drawImage(byId(spriteId), x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
+  }
+
+  function drawFarmer() {
+    drawItem(`farmer-${items.farmer.direction}`, "farmer");
+  }
+
+  function initialDraw() {
+    for (let item of ["fox", "goose", "beans", "boat-top", "boat-bottom"]) {
+      drawItem(item);
+    }
+    messageY = 5;
+    context.fillStyle = BLACK;
+    context.fillRect(0, 0, 167 * scale, 199 * scale);
+    addMessage("Start on one shore.");
+  }
+
+  function reset() {
+    if (items) {
+      for (let item of ["farmer", "boat-bottom", "boat-top", "fox", "goose", "beans"]) {
+        clearItem(item);
+      }
+    }
+    items = {
+      farmer: { x: BOAT_X, y: 25, direction: "front" },
+      fox: { x: BOAT_X - 5, y: 30 },
+      goose: { x: BOAT_X, y: 30 },
+      beans: { x: BOAT_X + 5, y: 30 },
+      "boat-top": { x: BOAT_X, y: 20 },
+      "boat-bottom": { x: BOAT_X, y: 21 },
+    };
+    gameFinished = false;
+    initialDraw();
+  }
+  reset();
+  drawFarmer();
+
+  function isInInventory(id) {
+    return items[id].x === INVENTORY.x;
+  }
+  function inventoryEmpty() {
+    return !["fox", "goose", "beans"].some(isInInventory);
+  }
+
+  function isEaten(id) {
+    return items[id].x === EATEN.x;
+  }
+
+  function farmerOnBoat() {
+    return items.farmer.x === BOAT_X && items.farmer.y === items["boat-top"].y;
+  }
+
+  function itemLocation(id) {
+    if (isInInventory(id)) {
+      return "inventory";
+    } else if (isEaten(id)) {
+      return "eaten";
+    } else if (items[id].y < 17) {
+      return "north shore";
+    } else {
+      return "south shore";
+    }
+  }
+
+  function someoneEaten() {
+    if (itemLocation("fox") === itemLocation("goose")) {
+      console.log(itemLocation("fox"), itemLocation("goose"));
+      return "goose";
+    }
+    if (itemLocation("goose") === itemLocation("beans") && itemLocation("beans") !== "eaten") {
+      return "beans";
+    }
+    return "";
+  }
+
+  let keyBindings = {
+    ArrowUp: () => {
+      if (items.farmer.y <= 13 || items.farmer.y > 21 || items.farmer.x === BOAT_X) {
+        if (farmerOnBoat() && items.farmer.y > 14) {
+          clearItem("boat-bottom");
+          clearItem("boat-top");
+          items["boat-top"].y -= 1;
+          items["boat-bottom"].y -= 1;
+          drawItem("boat-top");
+          drawItem("boat-bottom");
+        }
+        items.farmer.y -= 1;
+        items.farmer.direction = "back";
+      }
+    },
+    ArrowDown: () => {
+      if (items.farmer.y < 13 || items.farmer.y >= 21 || items.farmer.x === BOAT_X) {
+        if (farmerOnBoat() && items.farmer.y < 20) {
+          clearItem("boat-bottom");
+          clearItem("boat-top");
+          items["boat-top"].y += 1;
+          items["boat-bottom"].y += 1;
+          drawItem("boat-top");
+          drawItem("boat-bottom");
+        }
+        items.farmer.y += 1;
+        items.farmer.direction = "front";
+      }
+    },
+    ArrowLeft: () => {
+      if (!farmerOnBoat()) {
+        items.farmer.x -= 1;
+        items.farmer.direction = "left";
+      }
+    },
+    ArrowRight: () => {
+      if (!farmerOnBoat()) {
+        items.farmer.x += 1;
+        items.farmer.direction = "right";
+      }
+    },
+    d: () => {
+      if (!farmerOnBoat()) {
+        for (let id of ["fox", "goose", "beans"]) {
+          if (isInInventory(id)) {
+            clearItem(id);
+            items[id].x = items.farmer.x;
+            items[id].y = items.farmer.y;
+            drawItem(id);
+            pickupBounce = 3;
+            if (itemLocation(id) !== previousShore && !gameFinished) {
+              addMessage(`Take the ${id} across.`);
+            }
+            break;
+          }
+        }
+      }
+    },
+    r: reset,
+  };
+
+  document.addEventListener("keydown", (event) => {
+    if (keyBindings[event.key]) {
+      event.preventDefault();
+    } else {
+      return;
+    }
+
+    clearItem("farmer");
+    keyBindings[event.key]();
+
+    if (items.farmer.y === 17) {
+      let eatenId = someoneEaten();
+      if (eatenId) {
+        addMessage(`The ${eatenId} get${eatenId === "beans" ? "" : "s"} eaten.`);
+
+        clearItem(eatenId);
+        items[eatenId].x = EATEN.x;
+        items[eatenId].y = EATEN.y;
+
+        if (!gameFinished) {
+          addMessage("You lose.", MAGENTA);
+          gameFinished = true;
+        }
+      }
+    }
+
+    if (["fox", "goose", "beans"].every(id => itemLocation(id) === "north shore") && !gameFinished) {
+      addMessage("You win!", CYAN);
+      gameFinished = true;
+    }
+
+    // After we just dropped something we let it stay on the ground
+    // for a while without picking it up.
+    if (pickupBounce <= 0) {
+      for (let id of ["fox", "goose", "beans"]) {
+        let item = items[id];
+        let dy = item.y - items.farmer.y;
+        if (items.farmer.x === item.x && (dy === 0 || dy === 1) && inventoryEmpty()) {
+          previousShore = itemLocation(id);
+          clearItem(id);
+          item.x = INVENTORY.x;
+          item.y = INVENTORY.y;
+          drawItem(id);
+        }
+      }
+    }
+    pickupBounce -= 1;
+
+    drawFarmer();
+  });
+</script>
+</html>
