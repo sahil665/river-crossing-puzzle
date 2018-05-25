@@ -198,24 +198,6 @@
     }
   }
 
-  function textWidth(text) {
-    text = text.replace(/<(?:cyan|mag)>/g, "").replace(/<\/(?:cyan|mag)>/g, "");
-    let totalWidth = 0;
-    for (let char of text.split("")) {
-      if (char === " ") {
-        totalWidth += 5 * scale;
-        continue;
-      }
-      let charImage = characterImages[char];
-      if (typeof charImage === "undefined") {
-        throw new Error(`Could not find character '${char}' (${char.codePointAt(0)})`);
-      }
-      totalWidth += charImage.width + scale;
-    }
-    totalWidth -= scale;
-    return totalWidth;
-  }
-
   const INVENTORY = { x: 55, y: 5 };
   const EATEN = { x: -100, y: -100 };
 
