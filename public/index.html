@@ -92,335 +92,337 @@
     pixel(x2 - 1, y2 - 1);
   }
 
-  context.drawImage(
-    byId("chicago-12-font"),
-    0,
-    0,
-    175 * scale,
-    195 * scale
-  );
+  byId("chicago-12-font").addEventListener("load", () => {
+    context.drawImage(
+      byId("chicago-12-font"),
+      0,
+      0,
+      175 * scale,
+      195 * scale
+    );
 
-  const BLACK = "#000";
-  const CYAN = "#0ff";
-  const MAGENTA = "#f0f";
-  const WHITE = "#fff";
+    const BLACK = "#000";
+    const CYAN = "#0ff";
+    const MAGENTA = "#f0f";
+    const WHITE = "#fff";
 
-  let glue = {
-    "112,10": true,
-    "113,10": true,
-    "256,202": true,
-    "257,202": true,
-    "284,202": true,
-    "285,202": true,
-    "286,202": true,
-    "287,202": true,
-    "186,266": true,
-    "187,266": true,
-    "188,266": true,
-    "189,266": true,
-    "194,266": true,
-    "195,266": true,
-    "196,266": true,
-    "197,266": true,
-    "36,298": true,
-    "37,298": true,
-    "50,298": true,
-    "51,298": true,
-  };
-  const characterSet = ("⌘✓⧫\0!\"#$%&'()*+,-./01" +
-    "23456789:;<=>?@ABCDEF" +
-    "GHIJKLMNOPQRSTUVWXY" +
-    "Z[\\]^_`abcdefghijklmno" +
-    "pqrstuvwxyz{|}~ÄÅÇÉÑÖ" +
-    "Üáàâäãåçéèêëíìîïñóòôö" +
-    "õúùûü†°¢£§•¶ß©®™´¨≠" +
-    "ÆØ∞±≤≥¥μ∂∑∏π∫ªºΩæ" +
-    "ø¿¡¬√⨍≈Δ«»…ÀÃÕŒœ–" +
-    "—“”‘’÷◊ÿ□").split("");
-  const height = 30;
-  let characterIndex = 0;
-  let characterImages = {};
-  for (let y = 10; y < 310; y += 32) {
-    let grabbing = false;
-    let grabStart;
-    for (let x = 5; x <= 330; x++) {
-      let imageData = context.getImageData(x, y, 1, height);
-      let data = imageData.data;
-      let foundSomething = false;
-      for (let i = 0; i < data.length; i += 4) {
-        foundSomething = foundSomething || data[i] > 0;
-      }
-      if (foundSomething || glue[`${x},${y}`]) {
-        if (!grabbing) {
-          grabStart = x;
-        }
-        grabbing = true;
-      } else if (grabbing) {
-        let character = characterSet[characterIndex];
-        characterImages[character] = context.getImageData(grabStart, y, x - grabStart, height);
-        characterIndex++;
-        context.fillStyle = BLACK;
-        context.fillRect(grabStart, y, x - grabStart, height);
-        grabbing = false;
-      }
-    }
-  }
-
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  const rgb = {
-    [BLACK]: [0, 0, 0],
-    [CYAN]: [0, 0xFF, 0xFF],
-    [MAGENTA]: [0xFF, 0, 0xFF],
-    [WHITE]: [0xFF, 0xFF, 0xFF],
-  };
-
-  function write(text, x, y, { foreground = WHITE, background = BLACK } = {}) {
-    for (let char of text.split("")) {
-      if (char === " ") {
-        x += 5 * scale;
-        continue;
-      }
-      let charImage = characterImages[char];
-      if (foreground !== WHITE || background !== BLACK) {
-        charImage = new ImageData(Uint8ClampedArray.from(charImage.data), charImage.width, charImage.height);
-        for (let i = 0; i < charImage.data.length; i += 4) {
-          if (charImage.data[i] > 0) {
-            [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[foreground];
-          } else {
-            [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[background];
-          }
-        }
-      }
-      context.putImageData(charImage, x, y);
-      x += charImage.width + scale;
-      context.fillStyle = WHITE;
-    }
-  }
-
-  const INVENTORY = { x: 55, y: 5 };
-  const EATEN = { x: -100, y: -100 };
-
-  let messageY;
-  function addMessage(message, textColor = WHITE) {
-    write(`• ${message}`, 10, messageY * scale, { foreground: textColor, background: BLACK });
-    messageY += 15;
-  }
-
-  context.fillStyle = WHITE;
-  drawSoftBox((INVENTORY.x - 1) * 5, (INVENTORY.y - 1) * 5, (INVENTORY.x + 2) * 5, (INVENTORY.y + 3) * 5);
-  write("Inventory", (INVENTORY.x - 5) * 5 * scale, (INVENTORY.y - 4) * 5 * scale - 6);
-
-  verticalLine(168, 0, 199);
-  verticalLine(170, 0, 199);
-
-  context.fillStyle = CYAN;
-  for (let x = 171; x < 320; x++) {
-    let y1 = 14 * 5 + Math.round(6 * Math.sin((x - 85) / 100));
-    let y2 = 22 * 5 - Math.round(10 * Math.sin((x + 85) / 100));
-    verticalLine(x, y1, y2);
-  }
-
-  const BOAT_X = 48;
-  let items;
-  let pickupBounce = 0;
-  let gameFinished = false;
-  let previousShore;
-
-  function clearItem(id) {
-    let { x, y, backgroundImage } = items[id];
-    // XXX: bug, when sprites are on top of each other, they don't clear LIFO as they should
-    context.putImageData(backgroundImage, x * 5 * scale, y * 5 * scale);
-  }
-
-  function drawItem(spriteId, itemId = spriteId) {
-    let { x, y } = items[itemId];
-    items[itemId].backgroundImage = context.getImageData(x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
-    context.drawImage(byId(spriteId), x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
-  }
-
-  function drawFarmer() {
-    drawItem(`farmer-${items.farmer.direction}`, "farmer");
-  }
-
-  function initialDraw() {
-    for (let item of ["fox", "goose", "beans", "boat-top", "boat-bottom"]) {
-      drawItem(item);
-    }
-    messageY = 5;
-    context.fillStyle = BLACK;
-    context.fillRect(0, 0, 167 * scale, 199 * scale);
-    addMessage("Start on one shore.");
-  }
-
-  function reset() {
-    if (items) {
-      for (let item of ["farmer", "boat-bottom", "boat-top", "fox", "goose", "beans"]) {
-        clearItem(item);
-      }
-    }
-    items = {
-      farmer: { x: BOAT_X, y: 25, direction: "front" },
-      fox: { x: BOAT_X - 5, y: 30 },
-      goose: { x: BOAT_X, y: 30 },
-      beans: { x: BOAT_X + 5, y: 30 },
-      "boat-top": { x: BOAT_X, y: 20 },
-      "boat-bottom": { x: BOAT_X, y: 21 },
+    let glue = {
+      "112,10": true,
+      "113,10": true,
+      "256,202": true,
+      "257,202": true,
+      "284,202": true,
+      "285,202": true,
+      "286,202": true,
+      "287,202": true,
+      "186,266": true,
+      "187,266": true,
+      "188,266": true,
+      "189,266": true,
+      "194,266": true,
+      "195,266": true,
+      "196,266": true,
+      "197,266": true,
+      "36,298": true,
+      "37,298": true,
+      "50,298": true,
+      "51,298": true,
     };
-    gameFinished = false;
-    initialDraw();
-  }
-  reset();
-  drawFarmer();
-
-  function isInInventory(id) {
-    return items[id].x === INVENTORY.x;
-  }
-  function inventoryEmpty() {
-    return !["fox", "goose", "beans"].some(isInInventory);
-  }
-
-  function isEaten(id) {
-    return items[id].x === EATEN.x;
-  }
-
-  function farmerOnBoat() {
-    return items.farmer.x === BOAT_X && items.farmer.y === items["boat-top"].y;
-  }
-
-  function itemLocation(id) {
-    if (isInInventory(id)) {
-      return "inventory";
-    } else if (isEaten(id)) {
-      return "eaten";
-    } else if (items[id].y < 17) {
-      return "north shore";
-    } else {
-      return "south shore";
-    }
-  }
-
-  function someoneEaten() {
-    if (itemLocation("fox") === itemLocation("goose")) {
-      console.log(itemLocation("fox"), itemLocation("goose"));
-      return "goose";
-    }
-    if (itemLocation("goose") === itemLocation("beans") && itemLocation("beans") !== "eaten") {
-      return "beans";
-    }
-    return "";
-  }
-
-  let keyBindings = {
-    ArrowUp: () => {
-      if (items.farmer.y <= 13 || items.farmer.y > 21 || items.farmer.x === BOAT_X) {
-        if (farmerOnBoat() && items.farmer.y > 14) {
-          clearItem("boat-bottom");
-          clearItem("boat-top");
-          items["boat-top"].y -= 1;
-          items["boat-bottom"].y -= 1;
-          drawItem("boat-top");
-          drawItem("boat-bottom");
+    const characterSet = ("⌘✓⧫\0!\"#$%&'()*+,-./01" +
+      "23456789:;<=>?@ABCDEF" +
+      "GHIJKLMNOPQRSTUVWXY" +
+      "Z[\\]^_`abcdefghijklmno" +
+      "pqrstuvwxyz{|}~ÄÅÇÉÑÖ" +
+      "Üáàâäãåçéèêëíìîïñóòôö" +
+      "õúùûü†°¢£§•¶ß©®™´¨≠" +
+      "ÆØ∞±≤≥¥μ∂∑∏π∫ªºΩæ" +
+      "ø¿¡¬√⨍≈Δ«»…ÀÃÕŒœ–" +
+      "—“”‘’÷◊ÿ□").split("");
+    const height = 30;
+    let characterIndex = 0;
+    let characterImages = {};
+    for (let y = 10; y < 310; y += 32) {
+      let grabbing = false;
+      let grabStart;
+      for (let x = 5; x <= 330; x++) {
+        let imageData = context.getImageData(x, y, 1, height);
+        let data = imageData.data;
+        let foundSomething = false;
+        for (let i = 0; i < data.length; i += 4) {
+          foundSomething = foundSomething || data[i] > 0;
         }
-        items.farmer.y -= 1;
-        items.farmer.direction = "back";
-      }
-    },
-    ArrowDown: () => {
-      if (items.farmer.y < 13 || items.farmer.y >= 21 || items.farmer.x === BOAT_X) {
-        if (farmerOnBoat() && items.farmer.y < 20) {
-          clearItem("boat-bottom");
-          clearItem("boat-top");
-          items["boat-top"].y += 1;
-          items["boat-bottom"].y += 1;
-          drawItem("boat-top");
-          drawItem("boat-bottom");
+        if (foundSomething || glue[`${x},${y}`]) {
+          if (!grabbing) {
+            grabStart = x;
+          }
+          grabbing = true;
+        } else if (grabbing) {
+          let character = characterSet[characterIndex];
+          characterImages[character] = context.getImageData(grabStart, y, x - grabStart, height);
+          characterIndex++;
+          context.fillStyle = BLACK;
+          context.fillRect(grabStart, y, x - grabStart, height);
+          grabbing = false;
         }
-        items.farmer.y += 1;
-        items.farmer.direction = "front";
       }
-    },
-    ArrowLeft: () => {
-      if (!farmerOnBoat()) {
-        items.farmer.x -= 1;
-        items.farmer.direction = "left";
-      }
-    },
-    ArrowRight: () => {
-      if (!farmerOnBoat()) {
-        items.farmer.x += 1;
-        items.farmer.direction = "right";
-      }
-    },
-    d: () => {
-      if (!farmerOnBoat()) {
-        for (let id of ["fox", "goose", "beans"]) {
-          if (isInInventory(id)) {
-            clearItem(id);
-            items[id].x = items.farmer.x;
-            items[id].y = items.farmer.y;
-            drawItem(id);
-            pickupBounce = 3;
-            if (itemLocation(id) !== previousShore && !gameFinished) {
-              addMessage(`Take the ${id} across.`);
+    }
+
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const rgb = {
+      [BLACK]: [0, 0, 0],
+      [CYAN]: [0, 0xFF, 0xFF],
+      [MAGENTA]: [0xFF, 0, 0xFF],
+      [WHITE]: [0xFF, 0xFF, 0xFF],
+    };
+
+    function write(text, x, y, { foreground = WHITE, background = BLACK } = {}) {
+      for (let char of text.split("")) {
+        if (char === " ") {
+          x += 5 * scale;
+          continue;
+        }
+        let charImage = characterImages[char];
+        if (foreground !== WHITE || background !== BLACK) {
+          charImage = new ImageData(Uint8ClampedArray.from(charImage.data), charImage.width, charImage.height);
+          for (let i = 0; i < charImage.data.length; i += 4) {
+            if (charImage.data[i] > 0) {
+              [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[foreground];
+            } else {
+              [charImage.data[i], charImage.data[i + 1], charImage.data[i + 2]] = rgb[background];
             }
-            break;
+          }
+        }
+        context.putImageData(charImage, x, y);
+        x += charImage.width + scale;
+        context.fillStyle = WHITE;
+      }
+    }
+
+    const INVENTORY = { x: 55, y: 5 };
+    const EATEN = { x: -100, y: -100 };
+
+    let messageY;
+    function addMessage(message, textColor = WHITE) {
+      write(`• ${message}`, 10, messageY * scale, { foreground: textColor, background: BLACK });
+      messageY += 15;
+    }
+
+    context.fillStyle = WHITE;
+    drawSoftBox((INVENTORY.x - 1) * 5, (INVENTORY.y - 1) * 5, (INVENTORY.x + 2) * 5, (INVENTORY.y + 3) * 5);
+    write("Inventory", (INVENTORY.x - 5) * 5 * scale, (INVENTORY.y - 4) * 5 * scale - 6);
+
+    verticalLine(168, 0, 199);
+    verticalLine(170, 0, 199);
+
+    context.fillStyle = CYAN;
+    for (let x = 171; x < 320; x++) {
+      let y1 = 14 * 5 + Math.round(6 * Math.sin((x - 85) / 100));
+      let y2 = 22 * 5 - Math.round(10 * Math.sin((x + 85) / 100));
+      verticalLine(x, y1, y2);
+    }
+
+    const BOAT_X = 48;
+    let items;
+    let pickupBounce = 0;
+    let gameFinished = false;
+    let previousShore;
+
+    function clearItem(id) {
+      let { x, y, backgroundImage } = items[id];
+      // XXX: bug, when sprites are on top of each other, they don't clear LIFO as they should
+      context.putImageData(backgroundImage, x * 5 * scale, y * 5 * scale);
+    }
+
+    function drawItem(spriteId, itemId = spriteId) {
+      let { x, y } = items[itemId];
+      items[itemId].backgroundImage = context.getImageData(x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
+      context.drawImage(byId(spriteId), x * 5 * scale, y * 5 * scale, 5 * scale, 10 * scale);
+    }
+
+    function drawFarmer() {
+      drawItem(`farmer-${items.farmer.direction}`, "farmer");
+    }
+
+    function initialDraw() {
+      for (let item of ["fox", "goose", "beans", "boat-top", "boat-bottom"]) {
+        drawItem(item);
+      }
+      messageY = 5;
+      context.fillStyle = BLACK;
+      context.fillRect(0, 0, 167 * scale, 199 * scale);
+      addMessage("Start on one shore.");
+    }
+
+    function reset() {
+      if (items) {
+        for (let item of ["farmer", "boat-bottom", "boat-top", "fox", "goose", "beans"]) {
+          clearItem(item);
+        }
+      }
+      items = {
+        farmer: { x: BOAT_X, y: 25, direction: "front" },
+        fox: { x: BOAT_X - 5, y: 30 },
+        goose: { x: BOAT_X, y: 30 },
+        beans: { x: BOAT_X + 5, y: 30 },
+        "boat-top": { x: BOAT_X, y: 20 },
+        "boat-bottom": { x: BOAT_X, y: 21 },
+      };
+      gameFinished = false;
+      initialDraw();
+    }
+    reset();
+    drawFarmer();
+
+    function isInInventory(id) {
+      return items[id].x === INVENTORY.x;
+    }
+    function inventoryEmpty() {
+      return !["fox", "goose", "beans"].some(isInInventory);
+    }
+
+    function isEaten(id) {
+      return items[id].x === EATEN.x;
+    }
+
+    function farmerOnBoat() {
+      return items.farmer.x === BOAT_X && items.farmer.y === items["boat-top"].y;
+    }
+
+    function itemLocation(id) {
+      if (isInInventory(id)) {
+        return "inventory";
+      } else if (isEaten(id)) {
+        return "eaten";
+      } else if (items[id].y < 17) {
+        return "north shore";
+      } else {
+        return "south shore";
+      }
+    }
+
+    function someoneEaten() {
+      if (itemLocation("fox") === itemLocation("goose")) {
+        console.log(itemLocation("fox"), itemLocation("goose"));
+        return "goose";
+      }
+      if (itemLocation("goose") === itemLocation("beans") && itemLocation("beans") !== "eaten") {
+        return "beans";
+      }
+      return "";
+    }
+
+    let keyBindings = {
+      ArrowUp: () => {
+        if (items.farmer.y <= 13 || items.farmer.y > 21 || items.farmer.x === BOAT_X) {
+          if (farmerOnBoat() && items.farmer.y > 14) {
+            clearItem("boat-bottom");
+            clearItem("boat-top");
+            items["boat-top"].y -= 1;
+            items["boat-bottom"].y -= 1;
+            drawItem("boat-top");
+            drawItem("boat-bottom");
+          }
+          items.farmer.y -= 1;
+          items.farmer.direction = "back";
+        }
+      },
+      ArrowDown: () => {
+        if (items.farmer.y < 13 || items.farmer.y >= 21 || items.farmer.x === BOAT_X) {
+          if (farmerOnBoat() && items.farmer.y < 20) {
+            clearItem("boat-bottom");
+            clearItem("boat-top");
+            items["boat-top"].y += 1;
+            items["boat-bottom"].y += 1;
+            drawItem("boat-top");
+            drawItem("boat-bottom");
+          }
+          items.farmer.y += 1;
+          items.farmer.direction = "front";
+        }
+      },
+      ArrowLeft: () => {
+        if (!farmerOnBoat()) {
+          items.farmer.x -= 1;
+          items.farmer.direction = "left";
+        }
+      },
+      ArrowRight: () => {
+        if (!farmerOnBoat()) {
+          items.farmer.x += 1;
+          items.farmer.direction = "right";
+        }
+      },
+      d: () => {
+        if (!farmerOnBoat()) {
+          for (let id of ["fox", "goose", "beans"]) {
+            if (isInInventory(id)) {
+              clearItem(id);
+              items[id].x = items.farmer.x;
+              items[id].y = items.farmer.y;
+              drawItem(id);
+              pickupBounce = 3;
+              if (itemLocation(id) !== previousShore && !gameFinished) {
+                addMessage(`Take the ${id} across.`);
+              }
+              break;
+            }
+          }
+        }
+      },
+      r: reset,
+    };
+
+    document.addEventListener("keydown", (event) => {
+      if (keyBindings[event.key]) {
+        event.preventDefault();
+      } else {
+        return;
+      }
+
+      clearItem("farmer");
+      keyBindings[event.key]();
+
+      if (items.farmer.y === 17) {
+        let eatenId = someoneEaten();
+        if (eatenId) {
+          addMessage(`The ${eatenId} get${eatenId === "beans" ? "" : "s"} eaten.`);
+
+          clearItem(eatenId);
+          items[eatenId].x = EATEN.x;
+          items[eatenId].y = EATEN.y;
+
+          if (!gameFinished) {
+            addMessage("You lose.", MAGENTA);
+            gameFinished = true;
           }
         }
       }
-    },
-    r: reset,
-  };
 
-  document.addEventListener("keydown", (event) => {
-    if (keyBindings[event.key]) {
-      event.preventDefault();
-    } else {
-      return;
-    }
+      if (["fox", "goose", "beans"].every(id => itemLocation(id) === "north shore") && !gameFinished) {
+        addMessage("You win!", CYAN);
+        gameFinished = true;
+      }
 
-    clearItem("farmer");
-    keyBindings[event.key]();
-
-    if (items.farmer.y === 17) {
-      let eatenId = someoneEaten();
-      if (eatenId) {
-        addMessage(`The ${eatenId} get${eatenId === "beans" ? "" : "s"} eaten.`);
-
-        clearItem(eatenId);
-        items[eatenId].x = EATEN.x;
-        items[eatenId].y = EATEN.y;
-
-        if (!gameFinished) {
-          addMessage("You lose.", MAGENTA);
-          gameFinished = true;
+      // After we just dropped something we let it stay on the ground
+      // for a while without picking it up.
+      if (pickupBounce <= 0) {
+        for (let id of ["fox", "goose", "beans"]) {
+          let item = items[id];
+          let dy = item.y - items.farmer.y;
+          if (items.farmer.x === item.x && (dy === 0 || dy === 1) && inventoryEmpty()) {
+            previousShore = itemLocation(id);
+            clearItem(id);
+            item.x = INVENTORY.x;
+            item.y = INVENTORY.y;
+            drawItem(id);
+          }
         }
       }
-    }
+      pickupBounce -= 1;
 
-    if (["fox", "goose", "beans"].every(id => itemLocation(id) === "north shore") && !gameFinished) {
-      addMessage("You win!", CYAN);
-      gameFinished = true;
-    }
-
-    // After we just dropped something we let it stay on the ground
-    // for a while without picking it up.
-    if (pickupBounce <= 0) {
-      for (let id of ["fox", "goose", "beans"]) {
-        let item = items[id];
-        let dy = item.y - items.farmer.y;
-        if (items.farmer.x === item.x && (dy === 0 || dy === 1) && inventoryEmpty()) {
-          previousShore = itemLocation(id);
-          clearItem(id);
-          item.x = INVENTORY.x;
-          item.y = INVENTORY.y;
-          drawItem(id);
-        }
-      }
-    }
-    pickupBounce -= 1;
-
-    drawFarmer();
+      drawFarmer();
+    });
   });
 </script>
 </html>
